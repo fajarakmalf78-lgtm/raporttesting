@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raport DTA AL-Muhajirin</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        /* ... (CSS sama seperti sebelumnya, tidak diubah) ... */
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav no-print" id="main-nav" style="display: none;">
+        <div class="user-info">
+            <div class="logo">DTA AL-MUHAJIRIN</div>
+            <strong id="nav-user">Admin</strong> | <span id="nav-tahun">Tahun Ajaran 2024/2025</span>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-button" id="btn-input" type="button">Input Data</button>
+            <button class="nav-button" id="btn-data" type="button">Lihat Data</button>
+            <button class="nav-button" id="btn-logout" type="button">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Login Page -->
+    <div id="login-page" class="page active">
+        <!-- ... (login form sama) ... -->
+    </div>
+
+    <!-- Input Data Page -->
+    <div id="input-page" class="page">
+        <!-- ... (input form sama) ... -->
+    </div>
+
+    <!-- Data Page -->
+    <div id="data-page" class="page">
+        <!-- ... (data table sama) ... -->
+    </div>
+
+    <!-- Report Template (Sama seperti sebelumnya) -->
+    <div id="report-template" class="report-container">
+        <!-- ... (sama) ... -->
+    </div>
+
+    <script>
+        // Global variables
+        let currentPage = 'login-page';
+
+        // Initialize application
+        function initApp() {
+            // Setup event listeners NAVIGATION
+            document.getElementById('btn-input').onclick = function () {
+                showPage('input-page');
+            };
+            document.getElementById('btn-data').onclick = function () {
+                showPage('data-page');
+            };
+            document.getElementById('btn-logout').onclick = function () {
+                logout();
+            };
+
+            // Setup event listeners FORM
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                login();
+            });
+
+            document.getElementById('santri-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addSantri();
+            });
+
+            // Check login status
+            if (localStorage.getItem('isLoggedIn')) {
+                showPage('input-page');
+                document.getElementById('main-nav').style.display = 'flex';
+            } else {
+                showPage('login-page');
+                document.getElementById('main-nav').style.display = 'none';
+            }
+
+            // Initialize settings if not exists
+            if (!localStorage.getItem('appSettings')) {
+                localStorage.setItem('appSettings', JSON.stringify({
+                    tahunAjaran: '2024/2025',
+                    waliKelas: 'Siti Rosfah'
+                }));
+            }
+
+            // Set settings to form
+            const settings = JSON.parse(localStorage.getItem('appSettings'));
+            if (document.getElementById('tahun-ajaran')) {
+                document.getElementById('tahun-ajaran').value = settings.tahunAjaran;
+            }
+            if (document.getElementById('wali-kelas')) {
+                document.getElementById('wali-kelas').value = settings.waliKelas;
+            }
+            document.getElementById('nav-tahun').textContent = `Tahun Ajaran ${settings.tahunAjaran}`;
+
+            // Init data if not exists
+            if (!localStorage.getItem('nilaiSantri')) {
+                localStorage.setItem('nilaiSantri', JSON.stringify([]));
+            }
+
+            // Render data table if on data page
+            if (currentPage === 'data-page') {
+                renderTable();
+            }
+        }
+
+        // Show specific page
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+
+            // Refresh settings for input page
+            if (pageId === 'input-page') {
+                const settings = JSON.parse(localStorage.getItem('appSettings'));
+                if (document.getElementById('tahun-ajaran')) {
+                    document.getElementById('tahun-ajaran').value = settings.tahunAjaran;
+                }
+                if (document.getElementById('wali-kelas')) {
+                    document.getElementById('wali-kelas').value = settings.waliKelas;
+                }
+            }
+
+            // If showing data page, render the table
+            if (pageId === 'data-page') {
+                renderTable();
+            }
+
+            // Update navigation buttons
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            if (pageId !== 'login-page') {
+                document.getElementById('main-nav').style.display = 'flex';
+                if (pageId === 'input-page') document.getElementById('btn-input').classList.add('active');
+                if (pageId === 'data-page') document.getElementById('btn-data').classList.add('active');
+            } else {
+                document.getElementById('main-nav').style.display = 'none';
+            }
+        }
+
+        // Login function
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username && password) {
+                localStorage.setItem('isLoggedIn', 'true');
+                document.getElementById('nav-user').textContent = username;
+                showPage('input-page');
+                document.getElementById('main-nav').style.display = 'flex';
+            } else {
+                alert('Silakan isi username dan password');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            showPage('login-page');
+            document.getElementById('main-nav').style.display = 'none';
+        }
+
+        // Add student data
+        function addSantri() {
+            const nama = document.getElementById('nama').value;
+            const kelas = document.getElementById('kelas').value;
+            const alquran = parseInt(document.getElementById('alquran').value);
+            const hadits = parseInt(document.getElementById('hadits').value);
+            const aqidah = parseInt(document.getElementById('aqidah').value);
+            const akhlak = parseInt(document.getElementById('akhlak').value);
+            const ibadah = parseInt(document.getElementById('ibadah').value);
+            const tarikh = parseInt(document.getElementById('tarikh').value);
+            const bahasa_arab = parseInt(document.getElementById('bahasa_arab').value);
+            const praktik_ibadah = parseInt(document.getElementById('praktik_ibadah').value);
+            const bacaan_alquran = parseInt(document.getElementById('bacaan_alquran').value);
+            const tahfidz = parseInt(document.getElementById('tahfidz').value);
+            const kaligrafi = parseInt(document.getElementById('kaligrafi').value);
+
+            // Save settings
+            const settings = {
+                tahunAjaran: document.getElementById('tahun-ajaran').value,
+                waliKelas: document.getElementById('wali-kelas').value
+            };
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+            document.getElementById('nav-tahun').textContent = `Tahun Ajaran ${settings.tahunAjaran}`;
+
+            // Calculate total and average
+            const jumlah = alquran + hadits + aqidah + akhlak + ibadah + tarikh +
+                          bahasa_arab + praktik_ibadah + bacaan_alquran + tahfidz + kaligrafi;
+            const rata_rata = (jumlah / 11).toFixed(2);
+
+            // Get existing data
+            const data = JSON.parse(localStorage.getItem('nilaiSantri'));
+
+            // Add new data
+            data.push({
+                nama,
+                kelas,
+                alquran,
+                hadits,
+                aqidah,
+                akhlak,
+                ibadah,
+                tarikh,
+                bahasa_arab,
+                praktik_ibadah,
+                bacaan_alquran,
+                tahfidz,
+                kaligrafi,
+                jumlah,
+                rata_rata
+            });
+
+            // Save back to localStorage
+            localStorage.setItem('nilaiSantri', JSON.stringify(data));
+
+            alert('Data berhasil disimpan!');
+            document.getElementById('santri-form').reset();
+
+            // Switch to data page
+            showPage('data-page');
+        }
+
+        // Render data table
+        function renderTable() {
+            const data = JSON.parse(localStorage.getItem('nilaiSantri')) || [];
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+
+            if (data.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="18" style="text-align: center;">Tidak ada data</td>`;
+                tableBody.appendChild(row);
+                return;
+            }
+
+            // Sort data by average (descending)
+            data.sort((a, b) => b.rata_rata - a.rata_rata);
+
+            // Add ranking
+            data.forEach((item, index) => {
+                item.ranking = index + 1;
+            });
+
+            // Fill table with data
+            data.forEach((item, index) => { // <-- FIXED: pakai =>
+                const row = document.createElement('tr');
+
+                // Add classes for top 3 rankings
+                if (item.ranking === 1) row.classList.add('ranking-1');
+                if (item.ranking === 2) row.classList.add('ranking-2');
+                if (item.ranking === 3) row.classList.add('ranking-3');
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.nama}</td>
+                    <td>${item.kelas}</td>
+                    <td>${item.alquran}</td>
+                    <td>${item.hadits}</td>
+                    <td>${item.aqidah}</td>
+                    <td>${item.akhlak}</td>
+                    <td>${item.ibadah}</td>
+                    <td>${item.tarikh}</td>
+                    <td>${item.bahasa_arab}</td>
+                    <td>${item.praktik_ibadah}</td>
+                    <td>${item.bacaan_alquran}</td>
+                    <td>${item.tahfidz}</td>
+                    <td>${item.kaligrafi}</td>
+                    <td>${item.jumlah}</td>
+                    <td>${item.rata_rata}</td>
+                    <td>${item.ranking}</td>
+                    <td>
+                        <button class="btn-action btn-print" onclick="printReport(${index})">Cetak</button>
+                        <button class="btn-action btn-edit" onclick="editData(${index})">Edit</button>
+                        <button class="btn-action btn-delete" onclick="deleteData(${index})">Hapus</button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Angka ke terbilang
+        function angkaToTerbilang(angka) {
+            const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh'];
+            const puluhan = ['', 'Sepuluh', 'Dua Puluh', 'Tiga Puluh', 'Empat Puluh', 'Lima Puluh',
+                            'Enam Puluh', 'Tujuh Puluh', 'Delapan Puluh', 'Sembilan Puluh'];
+
+            if (angka < 11) {
+                return bilangan[angka];
+            } else if (angka < 20) {
+                return bilangan[angka - 10] + ' Belas';
+            } else if (angka < 100) {
+                return puluhan[Math.floor(angka / 10)] + (angka % 10 !== 0 ? ' ' + bilangan[angka % 10] : '');
+            } else if (angka === 100) {
+                return 'Seratus';
+            }
+            return angka.toString();
+        }
+
+        // ... Fitur printReport, editData, deleteData, searchData, exportToExcel tetap sama (atau tambahkan jika belum ada) ...
+
+        // Call initApp saat halaman dimuat
+        window.onload = initApp;
+    </script>
+</body>
+</html>
